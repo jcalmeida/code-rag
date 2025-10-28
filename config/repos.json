@@ -1,0 +1,32 @@
+{
+  "repositories": [
+    {
+      "name": "example-csharp-repo",
+      "url": "https://github.com/username/repo-name.git",
+      "branch": "master",
+      "local_path": "example-csharp-repo",
+      "enabled": true,
+      "languages": ["csharp"],
+      "exclude_patterns": [
+        "*/bin/*",
+        "*/obj/*",
+        "*.dll",
+        "*.exe",
+        "*/packages/*"
+      ]
+    },
+    {
+      "name": "another-repo",
+      "url": "https://gitlab.com/username/repo-name.git",
+      "branch": "main",
+      "local_path": "another-repo",
+      "enabled": false,
+      "languages": ["csharp", "python"],
+      "exclude_patterns": [
+        "*/node_modules/*",
+        "*/venv/*",
+        "*.pyc"
+      ]
+    }
+  ]
+}

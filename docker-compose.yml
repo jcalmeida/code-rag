@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  code-rag-api:
+    build: .
+    container_name: code-rag-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist data
+      - ./data:/app/data
+      # Mount config
+      - ./config:/app/config
+      # Mount source for development (optional, comment out for production)
+      - ./src:/app/src
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma
+      - REPOS_BASE_PATH=/app/data/repos
+      - REPOS_CONFIG_PATH=/app/config/repos.json
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
