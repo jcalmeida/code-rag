@@ -13,7 +13,7 @@ gitpython==3.1.41
 
 # Code parsing
 tree-sitter==0.20.4
-tree-sitter-c-sharp==0.20.0
+tree-sitter-c-sharp==0.21.3
 
 # Utilities
 python-dotenv==1.0.0
