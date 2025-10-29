@@ -58,7 +58,8 @@ class CodeParser:
         parser = self.parsers[language]
         
         try:
-            tree = parser.parse(bytes(content, "utf8"))
+            content_bytes = bytes(content, "utf8")
+            tree = parser.parse(content_bytes)
             root_node = tree.root_node
             
             chunks = []
@@ -167,13 +168,32 @@ class CodeParser:
     
     def _extract_name(self, node: Node, content: str) -> str:
         """Extract the name of a declaration node."""
-        # Look for identifier child
-        for child in node.children:
-            if child.type == 'identifier':
-                start_byte = child.start_byte
-                end_byte = child.end_byte
-                return content[start_byte:end_byte]
-        return "anonymous"
+        # Convert content to bytes for proper indexing with tree-sitter byte positions
+        content_bytes = bytes(content, "utf8")
+        
+        # Look for identifier child recursively
+        def find_identifier(n):
+            if n.type == 'identifier':
+                extracted_bytes = content_bytes[n.start_byte:n.end_byte]
+                extracted = extracted_bytes.decode("utf8")
+                # Debug logging
+                logger.debug(f"Extracting name from identifier at {n.start_byte}-{n.end_byte}: {repr(extracted)}")
+                return extracted
+            # For method declarations, look deeper in the tree
+            for child in n.children:
+                result = find_identifier(child)
+                if result:
+                    return result
+            return None
+        
+        name = find_identifier(node)
+        if not name:
+            # Fallback: try to extract from node text directly
+            node_bytes = content_bytes[node.start_byte:node.end_byte]
+            node_text = node_bytes.decode("utf8")
+            logger.debug(f"No identifier found, node text: {repr(node_text[:100])}")
+            return "anonymous"
+        return name
     
     def _simple_chunking(
         self,
