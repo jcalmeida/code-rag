@@ -1,6 +1,7 @@
 """Code parsing with tree-sitter for structure-aware chunking."""
 import hashlib
 import logging
+from importlib import resources
 from pathlib import Path
 from typing import List, Optional, Tuple
 from tree_sitter import Language, Parser, Node
@@ -22,9 +23,11 @@ class CodeParser:
     def _initialize_parsers(self):
         """Initialize tree-sitter parsers for supported languages."""
         try:
-            # C# parser
-            CSHARP_LANGUAGE = Language(tscsharp.language())
-            csharp_parser = Parser(CSHARP_LANGUAGE)
+            # C# parser - load from packaged shared library
+            shared_library = resources.files(tscsharp).joinpath("_binding.abi3.so")
+            CSHARP_LANGUAGE = Language(str(shared_library), "c_sharp")
+            csharp_parser = Parser()
+            csharp_parser.set_language(CSHARP_LANGUAGE)
             self.parsers[LangEnum.CSHARP] = csharp_parser
             logger.info("Initialized C# parser")
         except Exception as e:

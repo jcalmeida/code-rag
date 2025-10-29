@@ -2,7 +2,6 @@
 import logging
 from typing import List, Optional, Dict, Any
 import chromadb
-from chromadb.config import Settings as ChromaSettings
 from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -16,11 +15,8 @@ class VectorStore:
     """Manages vector embeddings and similarity search with ChromaDB."""
     
     def __init__(self):
-        self.client = chromadb.Client(
-            ChromaSettings(
-                persist_directory=str(settings.chroma_persist_directory),
-                anonymized_telemetry=False
-            )
+        self.client = chromadb.PersistentClient(
+            path=str(settings.chroma_persist_directory)
         )
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         self.collection = self._get_or_create_collection()
