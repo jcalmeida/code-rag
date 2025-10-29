@@ -29,7 +29,7 @@ class ChatRequest(BaseModel):
     repo_names: Optional[List[str]] = None
     languages: Optional[List[str]] = None
     max_context_chunks: int = 5
-    model: str = "claude-3-5-sonnet-latest"  # Default to Claude, fallback to GPT
+    model: str = "claude-sonnet-4-5"  # Default to Claude, fallback to GPT
 
 
 class ChatResponse(BaseModel):
