@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.ingestion_service import IngestionService
 from src.vector_store import VectorStore
 from src.models import SearchQuery
+from src.llm_chat import LLMChatService, ChatRequest
 
 # Configure logging
 logging.basicConfig(
@@ -155,6 +156,39 @@ def cmd_stats(args):
     return 0
 
 
+def cmd_chat(args):
+    """Chat with LLM about your codebase."""
+    llm_service = LLMChatService()
+    
+    request = ChatRequest(
+        message=args.message,
+        repo_names=args.repos.split(',') if args.repos else None,
+        languages=args.languages.split(',') if args.languages else None,
+        max_context_chunks=args.context_chunks,
+        model=args.model
+    )
+    
+    logger.info(f"Asking: {args.message}")
+    
+    try:
+        response = llm_service.chat(request)
+        
+        print(f"\n🤖 **Assistant ({response.model_used})**:")
+        print(response.response)
+        
+        if response.sources:
+            print(f"\n📚 **Sources** ({len(response.sources)} code chunks):")
+            for i, result in enumerate(response.sources, 1):
+                chunk = result.chunk
+                print(f"{i}. {chunk.file_path} (lines {chunk.start_line}-{chunk.end_line}) - Score: {result.score:.3f}")
+        
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        return 1
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Code RAG System CLI",
@@ -191,6 +225,15 @@ def main():
     # Stats command
     stats_parser = subparsers.add_parser('stats', help='Show vector store statistics')
     stats_parser.set_defaults(func=cmd_stats)
+    
+    # Chat command
+    chat_parser = subparsers.add_parser('chat', help='Chat with LLM about your codebase')
+    chat_parser.add_argument('message', help='Your question about the code')
+    chat_parser.add_argument('--repos', help='Comma-separated list of repository names')
+    chat_parser.add_argument('--languages', help='Comma-separated list of languages')
+    chat_parser.add_argument('--context-chunks', type=int, default=5, help='Number of code chunks to include as context')
+    chat_parser.add_argument('--model', default='claude-3-5-sonnet-latest', help='Model to use (Claude or OpenAI)')
+    chat_parser.set_defaults(func=cmd_chat)
     
     args = parser.parse_args()
     

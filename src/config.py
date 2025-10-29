@@ -25,6 +25,12 @@ class Settings(BaseSettings):
         description="Dimension of embedding vectors"
     )
     
+    # Anthropic settings
+    anthropic_api_key: Optional[str] = Field(
+        default=None,
+        description="Anthropic API key for Claude models"
+    )
+    
     # Git settings
     git_token: Optional[str] = Field(
         default=None,

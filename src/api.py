@@ -9,6 +9,7 @@ from src.config import settings
 from src.models import SearchQuery, SearchResult, WebhookPayload
 from src.ingestion_service import IngestionService
 from src.vector_store import VectorStore
+from src.llm_chat import LLMChatService, ChatRequest, ChatResponse, ChatMessage
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +37,7 @@ app.add_middleware(
 # Initialize services
 ingestion_service = IngestionService()
 vector_store = VectorStore()
+llm_chat_service = LLMChatService()
 
 
 # Response models
@@ -331,6 +333,59 @@ async def reset_repository(repo_name: str):
         )
     except Exception as e:
         logger.error(f"Error resetting repository {repo_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_code(request: ChatRequest):
+    """
+    Chat with an LLM that has access to your codebase via RAG.
+    
+    Ask questions about your code in natural language and get responses
+    with relevant code context and explanations.
+    """
+    try:
+        response = llm_chat_service.chat(request)
+        return response
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ChatWithHistoryRequest(BaseModel):
+    """Chat request with conversation history."""
+    message: str
+    chat_history: List[ChatMessage] = []
+    repo_names: Optional[List[str]] = None
+    languages: Optional[List[str]] = None
+    max_context_chunks: int = 5
+    model: str = "gpt-4o-mini"
+
+
+@app.post("/chat/history", response_model=ChatResponse)
+async def chat_with_history(request: ChatWithHistoryRequest):
+    """
+    Chat with conversation history for multi-turn conversations.
+    
+    Maintains context across multiple messages while pulling in
+    relevant code context for each query.
+    """
+    try:
+        chat_request = ChatRequest(
+            message=request.message,
+            repo_names=request.repo_names,
+            languages=request.languages,
+            max_context_chunks=request.max_context_chunks,
+            model=request.model
+        )
+        
+        response = llm_chat_service.chat_with_history(
+            chat_request, 
+            request.chat_history
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Chat with history error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
