@@ -1,45 +1,36 @@
 # Code RAG System
 
-A powerful Retrieval-Augmented Generation (RAG) system for code repositories. Ingest multiple repositories from GitHub/GitLab, parse code with structure awareness, and search using natural language or code queries.
+A Retrieval-Augmented Generation (RAG) system for code repositories that enables semantic search and intelligent querying of your codebase using vector embeddings and language models.
 
 ## Features
 
-- 🔍 **Semantic Code Search**: Search across multiple repositories using natural language
-- 🌳 **Structure-Aware Parsing**: Uses tree-sitter to understand code structure (classes, methods, etc.)
-- 🔄 **Incremental Updates**: Only processes changed files using Git diff tracking
-- 🪝 **Webhook Support**: Automatic ingestion on push events (GitHub/GitLab)
-- 🐳 **Docker Ready**: Easy deployment with Docker and docker-compose
-- 🎯 **Multi-Language**: Extensible to support multiple programming languages (C# implemented)
-- 💾 **Local Vector Store**: Uses ChromaDB for efficient local vector storage
-- 🔐 **Private Repo Support**: Works with private repositories using access tokens
+- **🔍 Semantic Code Search**: Find relevant code snippets using natural language queries
+- **🤖 LLM Chat Integration**: Ask questions about your code with RAG context (Claude + OpenAI support)
+- **📁 Multi-Repository Support**: Index and search across multiple repositories
+- **🔄 Incremental Updates**: Efficient Git-based change detection and updates
+- **💻 Language Support**: Currently supports C# with extensible architecture for other languages
+- **🌐 REST API**: FastAPI-based web service for integration
+- **⚡ CLI Interface**: Command-line tools for direct interaction
+- **🔗 MCP Integration**: Model Context Protocol server for AI assistant integration
+- **📡 Webhook Integration**: Auto-update on Git push events
 
 ## Architecture
 
 ```
-┌─────────────────┐
-│  GitHub/GitLab  │
-│   Repositories  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Git Manager    │  ← Clone, pull, diff tracking
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Code Parser    │  ← Tree-sitter structure-aware parsing
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Vector Store   │  ← ChromaDB + OpenAI embeddings
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   FastAPI       │  ← Search, ingest, webhook endpoints
-└─────────────────┘
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Git Repos     │───▶│  Code Parser     │───▶│  Vector Store   │
+│                 │    │  (Tree-sitter)   │    │  (ChromaDB)     │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                        │
+┌─────────────────┐    ┌──────────────────┐            │
+│   REST API      │◄───│  Search Engine   │◄───────────┘
+│   (FastAPI)     │    │  (Embeddings)    │
+└─────────────────┘    └──────────────────┘
+                              │
+┌─────────────────┐    ┌──────────────────┐
+│  MCP Server     │◄───│   LLM Chat       │
+│  (Assistants)   │    │ (Claude/OpenAI)  │
+└─────────────────┘    └──────────────────┘
 ```
 
 ## Quick Start
@@ -47,41 +38,112 @@ A powerful Retrieval-Augmented Generation (RAG) system for code repositories. In
 ### Prerequisites
 
 - Python 3.11+
-- OpenAI API key
+- OpenAI API key (for embeddings)
+- Anthropic API key (optional, for Claude chat)
 - Git
 - (Optional) Docker and docker-compose
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jcalmeida/code-rag.git
+   cd code-rag
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. **Configure repositories:**
+   ```bash
+   # Edit config/repos.json to add your repositories
+   ```
+
+5. **Ingest your first repository:**
+   ```bash
+   python cli.py ingest
+   ```
+
+## Usage
+
+### 🔍 CLI Search
 ```bash
-git clone <your-repo-url>
-cd windsurf-project
+# Basic search
+python cli.py search "authentication middleware"
+
+# Search with filters
+python cli.py search "database connection" --repos myproject --languages python
+
+# Get statistics
+python cli.py stats
 ```
 
-2. **Create virtual environment**:
+### 🤖 CLI Chat (LLM Integration)
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Ask questions about your code
+python cli.py chat "How does authentication work in this project?"
+
+# Use specific model
+python cli.py chat "Explain the database schema" --model claude-3-5-sonnet-latest
+
+# Filter by repository
+python cli.py chat "Show me the API endpoints" --repos backend-service
 ```
 
-3. **Install dependencies**:
+### 🌐 REST API
 ```bash
-pip install -r requirements.txt
+# Start the server
+python -m uvicorn src.api:app --reload
+
+# Search via API
+curl -X POST "http://localhost:8000/search" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "user authentication", "top_k": 5}'
+
+# Chat via API
+curl -X POST "http://localhost:8000/chat" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "How do I add a new API endpoint?"}'
 ```
 
-4. **Configure environment**:
+### 🔗 MCP Integration (AI Assistants)
+
+The system provides an MCP (Model Context Protocol) server for integration with AI assistants:
+
 ```bash
-cp .env.example .env
-# Edit .env and add your credentials
+# Run MCP server
+python -m src.mcp_server
 ```
 
-Required environment variables:
-- `OPENAI_API_KEY`: Your OpenAI API key
+**Available MCP Tools:**
+- `search_code`: Semantic code search
+- `chat_with_code`: Ask questions with RAG context  
+- `ingest_repository`: Update repository index
+- `get_repository_stats`: Get indexing statistics
+
+**MCP Resources:**
+- `code-rag://stats`: Vector store statistics
+- `code-rag://repositories`: Repository configuration
+
+See [MCP_INTEGRATION.md](MCP_INTEGRATION.md) for detailed assistant setup.
+
+## Configuration
+
+### Environment Variables
+Required in your `.env` file:
+- `OPENAI_API_KEY`: Your OpenAI API key (for embeddings)
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (optional, for Claude chat)
 - `GIT_TOKEN`: GitHub/GitLab personal access token (for private repos)
 
-5. **Configure repositories**:
-
+### Repository Configuration
 Edit `config/repos.json` to add your repositories:
 
 ```json
@@ -105,284 +167,45 @@ Edit `config/repos.json` to add your repositories:
 }
 ```
 
-### Usage
+## Development
 
-#### Using the CLI
-
-**Ingest all repositories**:
+### Running Tests
 ```bash
-python cli.py ingest
-```
+# Run all tests
+pytest
 
-**Ingest a specific repository**:
-```bash
-python cli.py ingest --repo-name my-csharp-project
-```
-
-**Force full reindex**:
-```bash
-python cli.py ingest --force
-```
-
-**Search for code**:
-```bash
-python cli.py search "authentication middleware"
-python cli.py search "how to connect to database" --top-k 5
-python cli.py search "user validation" --repos my-csharp-project
-```
-
-**Check repository states**:
-```bash
-python cli.py state
-python cli.py state --repo-name my-csharp-project
-```
-
-**Reset a repository** (forces complete reindex):
-```bash
-python cli.py reset my-csharp-project
-```
-
-**View statistics**:
-```bash
-python cli.py stats
-```
-
-#### Using the API
-
-**Start the API server**:
-```bash
-python -m uvicorn src.api:app --reload
-```
-
-The API will be available at `http://localhost:8000`
-
-**API Documentation**: Visit `http://localhost:8000/docs` for interactive API documentation
-
-**Key Endpoints**:
-
-- `GET /` - Health check
-- `POST /search` - Search for code
-- `POST /ingest` - Trigger ingestion of all repositories
-- `POST /ingest/{repo_name}` - Trigger ingestion of specific repository
-- `POST /webhook/github` - GitHub webhook endpoint
-- `POST /webhook/gitlab` - GitLab webhook endpoint
-- `GET /state` - Get all repository states
-- `GET /state/{repo_name}` - Get specific repository state
-- `DELETE /reset/{repo_name}` - Reset a repository
-
-**Example API calls**:
-
-```bash
-# Search
-curl -X POST "http://localhost:8000/search" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "authentication logic",
-    "top_k": 10
-  }'
-
-# Trigger ingestion
-curl -X POST "http://localhost:8000/ingest"
-
-# Get state
-curl "http://localhost:8000/state"
+# Run with coverage
+pytest --cov=src
 ```
 
 ### Docker Deployment
-
-**Build and run with docker-compose**:
 ```bash
+# Build and run with docker-compose
 docker-compose up -d
-```
 
-**View logs**:
-```bash
+# View logs
 docker-compose logs -f
-```
 
-**Stop**:
-```bash
+# Stop services
 docker-compose down
 ```
 
-The API will be available at `http://localhost:8000`
+## Contributing
 
-## Configuration
-
-### Environment Variables
-
-See `.env.example` for all available configuration options:
-
-- **OpenAI Settings**:
-  - `OPENAI_API_KEY`: Your OpenAI API key
-  - `EMBEDDING_MODEL`: Model to use (default: text-embedding-3-small)
-  - `EMBEDDING_DIMENSION`: Embedding dimension (default: 1536)
-
-- **Git Settings**:
-  - `GIT_TOKEN`: Personal access token for GitHub/GitLab
-
-- **Storage Settings**:
-  - `CHROMA_PERSIST_DIRECTORY`: ChromaDB data directory
-  - `REPOS_BASE_PATH`: Base directory for cloned repos
-  - `REPOS_CONFIG_PATH`: Path to repos.json
-
-- **Chunking Settings**:
-  - `MAX_CHUNK_SIZE`: Maximum chunk size in characters
-  - `CHUNK_OVERLAP`: Overlap between chunks
-
-### Repository Configuration
-
-The `config/repos.json` file defines which repositories to process:
-
-```json
-{
-  "repositories": [
-    {
-      "name": "unique-repo-name",
-      "url": "https://github.com/user/repo.git",
-      "branch": "master",
-      "local_path": "local-directory-name",
-      "enabled": true,
-      "languages": ["csharp"],
-      "exclude_patterns": [
-        "*/bin/*",
-        "*/obj/*",
-        "*.dll"
-      ]
-    }
-  ]
-}
-```
-
-**Fields**:
-- `name`: Unique identifier for the repository
-- `url`: Git clone URL (HTTPS or SSH)
-- `branch`: Branch to track (default: "master")
-- `local_path`: Local directory name for cloning
-- `enabled`: Whether to process this repository
-- `languages`: Programming languages to process
-- `exclude_patterns`: Glob patterns for files/directories to exclude
-
-## Webhook Setup
-
-### GitHub
-
-1. Go to your repository settings → Webhooks → Add webhook
-2. Set Payload URL: `http://your-server:8000/webhook/github`
-3. Content type: `application/json`
-4. Select events: `Push`
-5. (Optional) Set a secret and add it to `WEBHOOK_SECRET` in `.env`
-
-### GitLab
-
-1. Go to your repository settings → Webhooks
-2. Set URL: `http://your-server:8000/webhook/gitlab`
-3. Select trigger: `Push events`
-4. (Optional) Set a secret token matching `WEBHOOK_SECRET` in `.env`
-
-## How It Works
-
-### Ingestion Pipeline
-
-1. **Git Operations**: Clone or pull latest changes from repositories
-2. **Diff Detection**: Compare with last processed commit to find changed files
-3. **Code Parsing**: Use tree-sitter to parse code into structural chunks (classes, methods, etc.)
-4. **Embedding Generation**: Generate embeddings using OpenAI's API
-5. **Vector Storage**: Store chunks and embeddings in ChromaDB
-6. **State Tracking**: Save commit hash and metadata for incremental updates
-
-### Search Process
-
-1. **Query Embedding**: Convert search query to embedding
-2. **Similarity Search**: Find most similar code chunks using vector similarity
-3. **Ranking**: Return top-k results with similarity scores
-4. **Context**: Include file path, repository, and code structure information
-
-## Supported Languages
-
-Currently implemented:
-- ✅ C# (with tree-sitter)
-
-Easily extensible to:
-- Python
-- JavaScript/TypeScript
-- Java
-- Go
-- And more...
-
-To add a new language, update:
-1. `requirements.txt` - Add tree-sitter language package
-2. `src/code_parser.py` - Initialize parser and add parsing logic
-3. `src/models.py` - Add language to `Language` enum
-
-## Performance Tips
-
-1. **Chunking**: Adjust `MAX_CHUNK_SIZE` and `CHUNK_OVERLAP` based on your needs
-2. **Embedding Model**: Use `text-embedding-3-small` for cost efficiency, `text-embedding-3-large` for better quality
-3. **Exclude Patterns**: Exclude build artifacts, dependencies, and generated code
-4. **Incremental Updates**: Webhooks enable real-time updates without full reindexing
-5. **Batch Processing**: Process multiple files in parallel (future enhancement)
-
-## Troubleshooting
-
-**Issue**: Git clone fails with authentication error
-- **Solution**: Ensure `GIT_TOKEN` is set correctly in `.env`
-- For GitHub: Use a Personal Access Token with `repo` scope
-- For GitLab: Use a Personal Access Token with `read_repository` scope
-
-**Issue**: OpenAI API rate limits
-- **Solution**: Implement exponential backoff (already included via `tenacity`)
-- Consider using a higher rate limit tier
-
-**Issue**: Tree-sitter parsing fails
-- **Solution**: Falls back to simple chunking automatically
-- Check if the language parser is properly installed
-
-**Issue**: ChromaDB persistence issues
-- **Solution**: Ensure `CHROMA_PERSIST_DIRECTORY` has write permissions
-- Check disk space availability
-
-## Development
-
-**Run tests**:
-```bash
-pytest
-```
-
-**Format code**:
-```bash
-black src/
-```
-
-**Lint code**:
-```bash
-ruff check src/
-```
-
-## Future Enhancements
-
-- [ ] Support for more programming languages
-- [ ] Parallel processing for faster ingestion
-- [ ] Advanced query features (filters, facets)
-- [ ] Code-to-code search (find similar implementations)
-- [ ] Integration with LLMs for code explanation
-- [ ] Web UI for search and management
-- [ ] Support for other vector databases (Pinecone, Weaviate)
-- [ ] Caching layer for frequently accessed chunks
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License - See LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Contributing
+## Acknowledgments
 
-Contributions are welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Support
-
-For issues, questions, or contributions, please open an issue on GitHub.
+- **Tree-sitter** for code parsing
+- **ChromaDB** for vector storage
+- **OpenAI** for embeddings
+- **Anthropic** for Claude integration
+- **FastAPI** for the web framework

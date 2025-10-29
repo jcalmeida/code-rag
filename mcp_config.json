@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "code-rag": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "env": {
+        "OPENAI_API_KEY": "",
+        "ANTHROPIC_API_KEY": "",
+        "CHROMA_PERSIST_DIRECTORY": "./data/chroma",
+        "REPOS_CONFIG_PATH": "./config/repos.json",
+        "REPOS_BASE_PATH": "./data/repos"
+      }
+    }
+  }
+}
