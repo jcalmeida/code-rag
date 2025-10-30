@@ -10,7 +10,7 @@ import logging
 from typing import Any, Dict, List, Optional, Sequence
 import json
 
-from mcp.server import Server
+from mcp.server import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import (
@@ -18,8 +18,7 @@ from mcp.types import (
     Tool,
     TextContent,
     ImageContent,
-    EmbeddedResource,
-    LoggingLevel
+    EmbeddedResource
 )
 
 from src.config import settings
@@ -340,7 +339,7 @@ async def main():
                 server_name="code-rag",
                 server_version="1.0.0",
                 capabilities=code_rag_server.server.get_capabilities(
-                    notification_options=None,
+                    notification_options=NotificationOptions(),
                     experimental_capabilities={}
                 )
             )
@@ -348,4 +347,12 @@ async def main():
 
 
 if __name__ == "__main__":
+    # Configure logging to be less verbose
+    logging.basicConfig(level=logging.WARNING)
+    # Suppress specific loggers that are too verbose
+    logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.ERROR)
+    logging.getLogger("src.vector_store").setLevel(logging.ERROR)
+    logging.getLogger("mcp.server").setLevel(logging.ERROR)
+    
     asyncio.run(main())
